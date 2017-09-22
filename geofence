@@ -1,0 +1,283 @@
+	
+private addGeofence() {
+
+		var options = {
+			enableHighAccuracy: true,
+			timeout: 5000,
+			maximumAge: 0
+		};
+
+		function success(pos) {
+			var crd = pos.coords;
+
+			console.log('Your current position is:');
+			console.log(`Latitude : ${crd.latitude}`);
+			console.log(`Longitude: ${crd.longitude}`);
+			console.log(`More or less ${crd.accuracy} meters.`);
+		};
+
+		function error(err) {
+			console.warn(`ERROR(${err.code}): ${err.message}`);
+		};
+
+		navigator.geolocation.getCurrentPosition(success, error, options);
+
+		//console.log("this.geofence.latitude. " + this.geofence.latitude);
+
+
+		if (navigator && navigator.geolocation) {
+			navigator.geolocation.getCurrentPosition(function(position) {
+				console.log("position " + position);
+				//debugger;
+				this._latLng = new google.maps.LatLng(position.coords.latitude, position.coords.longitude)
+			});
+		}
+		//options describing geofence
+		let fence = {
+			id: '69ca1b88-6fbe-4e80-a4d4-ff4d3748acdb', //any unique ID
+			latitude: 28.4646844, //center of geofence radius
+			longitude: 77.07365833333333,
+			radius: 100, //radius to edge of geofence in meters
+			transitionType: 3, //see 'Transition Types' below
+			notification: { //notification settings
+				id: 1, //any unique ID
+				title: 'You crossed a fence', //notification title
+				text: 'You just arrived to Gliwice city center.', //notification body
+				openAppOnClick: true //open app when notification is tapped
+			}
+		}
+
+		this.geofence.addOrUpdate(fence).then(
+			() => {
+
+				this._latLng = new google.maps.LatLng(fence.latitude, fence.longitude);
+				this._radius = 800;
+				this.loadMap();
+				console.log('Geofence added')
+			},
+			(err) => console.log('Geofence failed to add')
+		);
+	}
+
+	/*private loadMap() {
+		//debugger;
+    this.map = new google.maps.Map(document.getElementById('map'), {
+      zoom: 12,
+      center: this._latLng,
+      mapTypeId: google.maps.MapTypeId.ROADMAP
+    });
+
+    this.marker = new google.maps.Marker({
+      map: this.map,
+      draggable: true,
+      animation: google.maps.Animation.DROP,
+      position: this.map.getCenter()
+    });
+
+    this.circle = new google.maps.Circle({
+      center: this._latLng,
+      map: this.map,
+      radius: this._radius,
+      strokeColor: "red",
+      strokeOpacity: 0.8,
+      strokeWeight: 2,
+      fillColor: "red",
+      clickable: true,
+    });
+    //debugger;
+    this.circle.bindTo('center', this.marker, 'position');
+    google.maps.event.addListener(this.marker, 'dragend', (event) => {
+      this._latLng = event._latLng;
+    });
+
+
+    // This event listener calls addMarker() when the circle is clicked.
+    google.maps.event.addListener(this.circle, 'click', (e) => {
+      this.markerPosition(e);
+    })
+
+    // This event listener calls addMarker() when the map is clicked.
+    google.maps.event.addListener(this.map, 'click', (e) => {
+      this.markerPosition(e);
+    });
+
+  }*/
+
+	//Changing marker along with circle
+	markerPosition(e) {
+		console.log("marker added");
+		//debugger;
+		//removes previous flotted markers
+		if (this.marker != null) {
+			this.marker.setMap(null);
+			this.marker = null;
+		}
+		//Set every time as center
+		this.map.setCenter(e.latLng);
+		this._latLng = e.latLng;
+		this.marker = new google.maps.Marker({
+			map: this.map,
+			center: e.latLng,
+			draggable: true,
+			animation: google.maps.Animation.DROP,
+			position: this.map.getCenter()
+		});
+		this.circle.bindTo('center', this.marker, 'position');
+
+	}
+	//Saving changes 
+	saveChanges() {
+		const geofence = this.geofence;
+		/*geofence.notification.text = this.notificationText;
+		geofence.radius = this.radius;
+		geofence.latitude = this.latLng.lat();
+		geofence.longitude = this.latLng.lng();
+		geofence.transitionType = parseInt(this.transitionType, 10);
+		this.geofenceService.addOrUpdate(geofence).then(() => {
+		  this.nav.pop();
+		});*/
+	}
+
+
+
+
+
+	---------  old
+
+	import { Component } from '@angular/core';
+import { NavController, Platform } from 'ionic-angular';
+
+import { Geofence } from '@ionic-native/geofence'; 
+import { Geolocation } from '@ionic-native/geolocation';
+
+declare var google;
+declare var circle;
+declare var marker;
+
+@Component({
+	selector: 'page-home',
+	templateUrl: 'home.html'
+})
+export class HomePage {
+	/*private _radius: number = 800;
+	private _latLng: LatLng;
+	private notificationText: string;
+	private transitionType: string;
+	private circle: any;
+	private marker: any;
+	private _map: GoogleMap;
+	private _element:HTMLElement;
+	private _position:CameraPosition;
+
+	private mapOptions(arg0: any, arg1: any): any {
+	    throw new Error("Method not implemented.");
+	}
+
+	private map: GoogleMap;
+  	private mapElement: HTMLElement;*/
+
+	constructor(public navCtrl: NavController, private geofence: Geofence, private geolocation: Geolocation, private platform:Platform) {
+		
+	}
+
+	ngAfterViewInit() {
+		setTimeout(() => {
+			this.loadMapNew();
+		}, 100);
+	}
+
+	loadMapNew() {
+	    this.mapElement = document.getElementById('map');
+	    this.map = this.googleMaps.create(this.mapElement, this.mapOptions);
+
+	    this.map.one(GoogleMapsEvent.MAP_READY)
+	      .then(() => this.map.addMarker({
+	          title: 'BTL Marketing',
+	          icon: 'blue',
+	          animation: 'DROP',
+	          position: new LatLng(43.0741904,-89.3809802)
+	        })
+	        .then(marker => {
+	          marker.on(GoogleMapsEvent.MARKER_CLICK)
+	            .subscribe(() => {
+	              alert('clicked');
+	            });
+
+	        }))
+	  }
+
+	private init(){
+		this._element = document.getElementById('map');
+
+		this._map = this.googleMaps.create(this._element);
+
+		this._map.one(GoogleMapsEvent.MAP_READY).then(
+		   () => {
+			     //alert(this._map);
+			     // Now you can add elements to the map like the marker
+			     this._map.getMyLocation().then((resp) => {
+				//this._latLng = resp.latLng;
+				this.loadMap(resp.latLng);
+			}, (err) => console.log("location error "+err));
+		   }
+		 );
+
+		
+
+		/*geofence.initialize().then(
+			() => {
+				console.log('Geofence Plugin Ready');
+				//this.addGeofence();
+			},
+			(err) => console.log(err)
+		)*/
+	}
+
+	private loadMap(_latLng) {
+
+		this._position = {
+		   target: {
+		     lat: 43.0741904,
+		     lng: -89.3809802
+		   },
+		   zoom: 10,
+		   tilt: 30
+		};
+		
+		this._map.moveCamera(this._position);
+
+		/*let map:  = this.googleMaps.create(element);
+
+		map.getMyLocation().then((val)=>{
+			console.log(val)
+			debugger;
+		}, (err) => console.log(err))
+
+
+		map.one(GoogleMapsEvent.MAP_READY).then(
+			() => {
+				debugger; 
+		console.log("map position "+map.getMyLocation());
+			let position: CameraPosition = {
+			target: {
+			 lat: 43.0741904,
+			 lng: -89.3809802
+			},
+			zoom: 18,
+			tilt: 30
+			};
+
+			// move the map's camera to position
+			map.moveCamera(position);
+				// Now you can add elements to the map like the marker
+			}
+		);*/
+	}
+
+
+	
+
+
+}
+
+
